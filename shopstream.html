@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign In / Sign Up / Forgot Password with OTP and SA SMS Simulation</title>
+<style>
+  /* Reset and base styles */
+  * {
+    box-sizing: border-box;
+  }
+
+  body,
+  html {
+    margin: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+      "Open Sans", "Helvetica Neue", sans-serif;
+    background-color: #1;
+    color: #f3f4f6;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #video-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 0;
+    opacity: 0.25;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  #video-bg video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-container {
+    width: 360px;
+    perspective: 1500px;
+    z-index: 1;
+    position: relative;
+    min-height: 540px;
+  }
+
+  .card {
+    position: relative;
+    width: 100%;
+    min-height: 540px;
+    border-radius: 12px;
+    background-color: rgba(17, 24, 39, 0.9);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    transition: transform 0.8s ease-in-out;
+    transform-style: preserve-3d;
+  }
+
+  .card.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  form {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 2rem 2.5rem;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: rgba(17, 24, 39, 0.95);
+    border-radius: 12px;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  form.front {
+    z-index: 4;
+    visibility: visible;
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+
+  form.back {
+    transform: rotateY(180deg);
+    z-index: 3;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  form.forgot {
+    z-index: 5;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: none;
+  }
+
+  form.forgot.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 10;
+  }
+
+  .title {
+    font-weight: 700;
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: #a78bfa;
+    letter-spacing: 0.03em;
+    user-select: none;
+  }
+
+  .input-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.35rem;
+    color: #9ca3af;
+    user-select: none;
+  }
+
+  .input-group input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    border: 1.5px solid #374151;
+    background-color: #1f2937;
+    color: #f3f4f6;
+    font-size: 1rem;
+    transition: border-color 0.25s ease;
+  }
+
+  .input-group input::placeholder {
+    color: #6b7280;
+  }
+
+  .input-group input:focus {
+    outline: none;
+    border-color: #a78bfa;
+    background-color: #111827;
+    box-shadow: 0 0 8px #a78bfa88;
+  }
+
+  .forgot-link,
+  .toggle-text a,
+  .btn-link {
+    background: none;
+    border: none;
+    color: #a78bfa;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 0;
+    margin: 0;
+    font-weight: 600;
+    user-select: none;
+    transition: text-decoration 0.25s ease;
+    align-self: flex-end;
+    display: inline-block;
+  }
+
+  .forgot-link:hover,
+  .forgot-link:focus,
+  .toggle-text a:hover,
+  .toggle-text a:focus,
+  .btn-link:hover,
+  .btn-link:focus {
+    text-decoration: underline;
+    outline: none;
+  }
+
+  .sign {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 100%);
+    color: #111827;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    user-select: none;
+    box-shadow: 0 4px 15px rgba(167, 139, 250, 0.5);
+    margin-top: 0.5rem;
+  }
+
+  .sign:hover,
+  .sign:focus {
+    background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+    outline: none;
+  }
+
+  .social-message {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0 1rem;
+    user-select: none;
+  }
+
+  .line {
+    height: 1px;
+    background-color: #374151;
+    flex-grow: 1;
+  }
+
+  .social-message .message {
+    padding: 0 1rem;
+    font-size: 0.85rem;
+    color: #9ca3af;
+    white-space: nowrap;
+  }
+
+  .social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 1.7rem;
+  }
+
+  .social-icons .icon {
+    background-color: transparent;
+    border: 1.5px solid #374151;
+    border-radius: 0.4rem;
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
+
+  .social-icons .icon:hover,
+  .social-icons .icon:focus {
+    border-color: #a78bfa;
+    background-color: rgba(167, 139, 250, 0.15);
+    outline: none;
+  }
+
+  .social-icons .icon svg {
+    width: 20px;
+    height: 20px;
+    fill: #f3f4f6;
+    pointer-events: none;
+  }
+
+  .toggle-text {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    user-select: none;
+    margin-top: 0.5rem;
+  }
+
+  .toggle-text a {
+    color: #a78bfa;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    transition: text-decoration 0.25s ease;
+  }
+
+  .toggle-text a:hover,
+  .toggle-text a:focus {
+    text-decoration: underline;
+    outline: none;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar for forms if content too big */
+  form::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  form::-webkit-scrollbar-thumb {
+    background: #5a47bd;
+    border-radius: 3px;
+  }
+
+  form::-webkit-scrollbar-track {
+    background: transparent;
+  }
+</style>
+</head>
+
+<body>
+  <!-- Background video -->
+  <div id="video-bg" aria-hidden="true">
+    <video autoplay muted loop playsinline>
+      <source src="background.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <div class="card-container" role="main" aria-label="Authentication forms">
+    <div class="card" id="auth-card" aria-live="polite" aria-atomic="true">
+      <!-- Sign In form -->
+      <form class="front" id="login-form" novalidate>
+        <p class="title">Sign In</p>
+
+        <div class="input-group">
+          <label for="login-identifier">Email, Phone or Username</label>
+          <input type="text" id="login-identifier" name="identifier" placeholder="Your email, phone or username" autocomplete="username" required />
+        </div>
+
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" placeholder="Your password" autocomplete="current-password" required />
+        </div>
+
+        <button type="submit" class="sign" aria-label="Sign in">Sign In</button>
+
+        <button type="button" class="forgot-link" id="forgot-password-link" aria-label="Forgot Password?">Forgot Password?</button>
+
+        <div class="social-message" aria-hidden="true">
+          <div class="line"></div>
+          <p class="message">Or login with</p>
+          <div class="line"></div>
+        </div>
+
+        <div class="social-icons" role="group" aria-label="Social login options">
+          <button class="icon" aria-label="Continue with Google" type="button" tabindex="0">
+            <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path fill="#EA4335"
+                d="M23.64 12.204c0-.74-.067-1.452-.187-2.134H12v4.04h6.337a5.41 5.41 0 01-2.34 3.553v2.958h3.78c2.19-2.018 3.456-5 3.456-8.417z" />
+              <path fill="#34A853"
+                d="M12 24c3.24 0 5.962-1.07 7.95-2.898l-3.78-2.96c-1.05.7-2.41 1.114-4.17 1.114-3.207 0-5.922-2.164-6.897-5.068H1.252v3.18A11.999 11.999 0 0012 24z" />
+              <path fill="#4A90E2"
+                d="M5.103 14.188a7.225 7.225 0 010-4.362V6.646H1.252a11.996 11.996 0 000 10.71l3.851-3.168z" />
+              <path fill="#FBBC05"
+                d="M12 5.202c1.832 0 3.466.63 4.76 1.87l3.57-3.57C17.95 1.998 15.244 1 12 1 7.857 1 4.262 3.578 2.982 7.39l3.82 2.964c.992-2.77 3.607-4.792 5.198-4.792z" />
+            </svg>
+          </button>
+
+          <button class="icon" aria-label="Continue with Twitter" type="button" tabindex="0">
+            <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path fill="#1DA1F2"
+                d="M23.954 4.57a10.019 10.019 0 01-2.825.775 4.932 4.932 0 002.163-2.724 10.078 10.078 0 01-3.127 1.195 4.916 4.916 0 00-8.375 4.482 13.942 13.942 0 01-10.118-5.14 4.902 4.902 0 001.52 6.574 4.9 4.9 0 01-2.224-.615v.06a4.916 4.916 0 003.946 4.808 4.935 4.935 0 01-2.213.085 4.916 4.916 0 004.588 3.417A9.867 9.867 0 012 19.54a13.945 13.945 0 007.548 2.209c9.057 0 14.01-7.506 14.01-14.01 0-.21-.005-.423-.015-.632A9.935 9.935 0 0024 4.59z" />
+            </svg>
+          </button>
+
+          <button class="icon" aria-label="Continue with GitHub" type="button" tabindex="0">
+            <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path fill="#fff"
+                d="M12 0C5.374 0 0 5.373 0 12c0 5.303 3.438 9.8 8.207 11.387.6.113.793-.263.793-.583 0-.288-.01-1.05-.015-2.06-3.338.726-4.042-1.615-4.042-1.615-.546-1.386-1.332-1.755-1.332-1.755-1.089-.744.083-.728.083-.728 1.205.085 1.838 1.238 1.838 1.238 1.07 1.834 2.807 1.304 3.492.997.108-.774.419-1.305.762-1.605-2.665-.303-5.466-1.334-5.466-5.933 0-1.312.469-2.38 1.237-3.222-.124-.303-.536-1.52.117-3.168 0 0 1.008-.322 3.3 1.23a11.49 11.49 0 013.003-.404c1.019.005 2.046.137 3.003.404 2.29-1.552 3.296-1.23 3.296-1.23.655 1.648.243 2.865.12 3.168.77.842 1.235 1.91 1.235 3.222 0 4.61-2.804 5.625-5.475 5.921.43.372.814 1.103.814 2.222 0 1.606-.014 2.901-.014 3.293 0 .322.188.7.798.58C20.565 21.796 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+            </svg>
+          </button>
+        </div>
+
+        <p class="toggle-text">
+          Don't have an account? <a href="#" id="show-signup" role="button" tabindex="0">Sign up</a>
+        </p>
+      </form>
+
+      <!-- Sign Up form -->
+      <form class="back" id="signup-form" novalidate>
+        <p class="title">Create Account</p>
+
+        <div class="input-group">
+          <label for="signup-username">Username</label>
+          <input type="text" id="signup-username" name="username" placeholder="Choose a username" autocomplete="username" required />
+        </div>
+
+        <div class="input-group">
+          <label for="signup-contact">Email or Phone Number</label>
+          <input type="text" id="signup-contact" name="contact" placeholder="your.email@example.com or +1234567890" autocomplete="email tel" required />
+        </div>
+
+        <div class="input-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" name="password" placeholder="Create a password" autocomplete="new-password" required />
+        </div>
+
+        <div class="input-group">
+          <label for="signup-password-confirm">Confirm Password</label>
+          <input type="password" id="signup-password-confirm" name="password_confirm" placeholder="Confirm your password" autocomplete="new-password" required />
+        </div>
+
+        <button type="submit" class="sign" aria-label="Sign up">Sign Up</button>
+
+        <p class="toggle-text">
+          Already have an account? <a href="#" id="show-login" role="button" tabindex="0">Sign in</a>
+        </p>
+      </form>
+
+      <!-- Forgot Password form -->
+      <form class="forgot" id="forgot-password-form" novalidate>
+        <p class="title">Forgot Password</p>
+
+        <div class="input-group" id="fp-contact-group">
+          <label for="forgot-contact">Enter your Email or Phone Number</label>
+          <input type="text" id="forgot-contact" name="contact" placeholder="your.email@example.com or +1234567890"
+            autocomplete="email tel" required />
+        </div>
+
+        <div class="input-group" id="fp-otp-group" style="display:none;">
+          <label for="forgot-otp">Enter OTP code</label>
+          <input type="text" id="forgot-otp" name="otp" placeholder="One Time Password" inputmode="numeric" />
+        </div>
+
+        <div class="input-group" id="fp-new-pass-group" style="display:none;">
+          <label for="forgot-new-password">New Password</label>
+          <input type="password" id="forgot-new-password" name="new_password" placeholder="New password" autocomplete="new-password" />
+        </div>
+
+        <div class="input-group" id="fp-confirm-pass-group" style="display:none;">
+          <label for="forgot-confirm-password">Confirm New Password</label>
+          <input type="password" id="forgot-confirm-password" name="confirm_password" placeholder="Confirm new password" autocomplete="new-password" />
+        </div>
+
+        <button type="submit" class="sign" id="forgot-submit-btn" aria-label="Submit">Send OTP</button>
+
+        <button type="button" class="btn-link" id="forgot-cancel-btn" aria-label="Cancel Forgot Password">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const card = document.getElementById("auth-card");
+
+      /* Forms */
+      const loginForm = document.getElementById("login-form");
+      const signupForm = document.getElementById("signup-form");
+      const forgotForm = document.getElementById("forgot-password-form");
+
+      /* Toggle links */
+      const showSignupBtn = document.getElementById("show-signup");
+      const showLoginBtn = document.getElementById("show-login");
+      const forgotLink = document.getElementById("forgot-password-link");
+      const forgotCancelBtn = document.getElementById("forgot-cancel-btn");
+
+      /* Forgot Password form elements */
+      const fpContactGroup = document.getElementById("fp-contact-group");
+      const fpOtpGroup = document.getElementById("fp-otp-group");
+      const fpNewPassGroup = document.getElementById("fp-new-pass-group");
+      const fpConfirmPassGroup = document.getElementById("fp-confirm-pass-group");
+      const forgotSubmitBtn = document.getElementById("forgot-submit-btn");
+
+      const KEY_USERS = "users_data";
+
+      // Load users from localStorage or empty array
+      function loadUsers() {
+        const data = localStorage.getItem(KEY_USERS);
+        return data ? JSON.parse(data) : [];
+      }
+
+      function saveUsers(users) {
+        localStorage.setItem(KEY_USERS, JSON.stringify(users));
+      }
+
+      // Validate email
+      function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+      }
+
+      // Validate phone (basic)
+      function isValidPhone(phone) {
+        const re = /^\+?\d{7,15}$/;
+        return re.test(phone);
+      }
+
+      // Validate contact as email or phone
+      function isValidContact(input) {
+        return isValidEmail(input) || isValidPhone(input);
+      }
+
+      // Validate South African phone: +27 then 6|7|8 then 7 digits
+      function isSouthAfricanPhone(phone) {
+        const saPhonePattern = /^\+27[678]\d{7}$/;
+        return saPhonePattern.test(phone);
+      }
+
+      // Accessibility helper: Enter or Space triggers handler
+      function handleKey(e, handler) {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          handler();
+        }
+      }
+
+      /* UI form show/hide */
+
+      function showLogin() {
+        card.classList.remove("is-flipped");
+        loginForm.style.visibility = "visible";
+        loginForm.style.opacity = "1";
+        loginForm.style.pointerEvents = "auto";
+
+        signupForm.style.visibility = "hidden";
+        signupForm.style.opacity = "0";
+        signupForm.style.pointerEvents = "none";
+
+        hideForgotPassword();
+      }
+
+      function showSignup() {
+        card.classList.add("is-flipped");
+        signupForm.style.visibility = "visible";
+        signupForm.style.opacity = "1";
+        signupForm.style.pointerEvents = "auto";
+
+        loginForm.style.visibility = "hidden";
+        loginForm.style.opacity = "0";
+        loginForm.style.pointerEvents = "none";
+
+        hideForgotPassword();
+      }
+
+      function showForgotPassword() {
+        forgotForm.classList.add("visible");
+
+        loginForm.style.visibility = "hidden";
+        loginForm.style.opacity = "0";
+        loginForm.style.pointerEvents = "none";
+
+        signupForm.style.visibility = "hidden";
+        signupForm.style.opacity = "0";
+        signupForm.style.pointerEvents = "none";
+
+        resetForgotPasswordForm();
+      }
+
+      function hideForgotPassword() {
+        forgotForm.classList.remove("visible");
+        resetForgotPasswordForm();
+      }
+
+      // Reset forgot password state
+      function resetForgotPasswordForm() {
+        fpContactGroup.style.display = "block";
+        fpOtpGroup.style.display = "none";
+        fpNewPassGroup.style.display = "none";
+        fpConfirmPassGroup.style.display = "none";
+        forgotSubmitBtn.textContent = "Send OTP";
+        forgotSubmitBtn.disabled = false;
+
+        forgotForm.reset();
+        currentFpStage = 0;
+        generatedOtp = null;
+        forgotForm.removeAttribute("data-contact");
+      }
+
+      /* Variables for forgot password OTP flow */
+      let currentFpStage = 0; // 0: enter contact, 1: enter OTP, 2: set new password
+      let generatedOtp = null;
+
+      /* Event Listeners */
+
+      showSignupBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        showSignup();
+      });
+      showSignupBtn.addEventListener("keydown", (e) => {
+        handleKey(e, showSignup);
+      });
+
+      showLoginBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        showLogin();
+      });
+      showLoginBtn.addEventListener("keydown", (e) => {
+        handleKey(e, showLogin);
+      });
+
+      forgotLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        showForgotPassword();
+      });
+      forgotLink.addEventListener("keydown", (e) => {
+        handleKey(e, showForgotPassword);
+      });
+
+      forgotCancelBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        showLogin();
+      });
+
+      /* Social login buttons */
+      const socialButtons = document.querySelectorAll(".social-icons .icon");
+
+      // Simulate social login/signup - accessible with click and keyboard
+      socialButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          alert(`Simulated social login via ${button.getAttribute("aria-label")}. Redirecting...`);
+          window.location.href = "dashboard.html"; // redirect to real dashboard here
+        });
+        button.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+            e.preventDefault();
+            button.click();
+          }
+        });
+      });
+
+      /* Signup form submission */
+      signupForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById("signup-username").value.trim();
+        const contact = document.getElementById("signup-contact").value.trim();
+        const password = document.getElementById("signup-password").value;
+        const passwordConfirm = document.getElementById("signup-password-confirm").value;
+
+        if (!username) {
+          alert("Please enter a username.");
+          return;
+        }
+        if (!contact) {
+          alert("Please enter your email or phone number.");
+          return;
+        }
+        if (!isValidContact(contact)) {
+          alert("Please enter a valid email address or phone number.");
+          return;
+        }
+        if (password.length < 6) {
+          alert("Password must be at least 6 characters long.");
+          return;
+        }
+        if (password !== passwordConfirm) {
+          alert("Passwords do not match. Please check and try again.");
+          return;
+        }
+
+        const users = loadUsers();
+
+        if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+          alert("Username already taken. Please choose a different one.");
+          return;
+        }
+        if (users.some(u => u.contact.toLowerCase() === contact.toLowerCase())) {
+          alert("Email or phone number already registered. Please use a different one or sign in.");
+          return;
+        }
+
+        users.push({ username, contact, password });
+        saveUsers(users);
+
+        // Redirect after successful signup
+        signupForm.reset();
+        window.location.href = "dashboard.html"; // change to your real page
+      });
+
+      /* Login form submission */
+      loginForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const identifier = document.getElementById("login-identifier").value.trim();
+        const password = document.getElementById("login-password").value;
+
+        if (!identifier) {
+          alert("Please enter your email, phone or username.");
+          return;
+        }
+        if (!password) {
+          alert("Please enter your password.");
+          return;
+        }
+
+        const users = loadUsers();
+
+        const user = users.find(u =>
+          u.username.toLowerCase() === identifier.toLowerCase() ||
+          u.contact.toLowerCase() === identifier.toLowerCase()
+        );
+
+        if (!user) {
+          alert("User not found. Please check your input or sign up.");
+          return;
+        }
+        if (user.password !== password) {
+          alert("Incorrect password. Please try again.");
+          return;
+        }
+
+        // Redirect after successful login
+        loginForm.reset();
+        window.location.href = "dashboard.html"; // change to your real page
+      });
+
+      /* Forgot Password form submission - multi step */
+      forgotForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        if (currentFpStage === 0) {
+          const contactInput = document.getElementById("forgot-contact").value.trim();
+          if (!contactInput) {
+            alert("Please enter your registered email or phone number.");
+            return;
+          }
+          if (!isValidContact(contactInput)) {
+            alert("Please enter a valid email address or phone number.");
+            return;
+          }
+
+          const users = loadUsers();
+          const user = users.find(u => u.contact.toLowerCase() === contactInput.toLowerCase());
+
+          if (!user) {
+            alert("No user found with that contact information.");
+            return;
+          }
+
+          generatedOtp = (Math.floor(100000 + Math.random() * 900000)).toString();
+          forgotForm.dataset.contact = contactInput;
+
+          if (isValidPhone(contactInput)) {
+            if (isSouthAfricanPhone(contactInput)) {
+              alert(`Sending OTP via SMS/WhatsApp to South African number ${contactInput}.\nYour OTP code is: ${generatedOtp} (demo)`);
+              // TODO: Insert your backend API call here to send OTP via SMS/WhatsApp
+            } else {
+              alert(`Phone number entered is not a valid South African number.\nYour OTP code is: ${generatedOtp} (demo)`);
+            }
+          } else {
+            alert(`Sending OTP to your email ${contactInput}.\nYour OTP code is: ${generatedOtp} (demo)`);
+          }
+
+          fpContactGroup.style.display = "none";
+          fpOtpGroup.style.display = "block";
+          forgotSubmitBtn.textContent = "Verify OTP";
+          currentFpStage = 1;
+          forgotForm.reset();
+
+        } else if (currentFpStage === 1) {
+          const enteredOtp = document.getElementById("forgot-otp").value.trim();
+          if (!enteredOtp) {
+            alert("Please enter the OTP code sent to your email/phone.");
+            return;
+          }
+          if (enteredOtp !== generatedOtp) {
+            alert("Invalid OTP code. Please try again.");
+            return;
+          }
+
+          fpOtpGroup.style.display = "none";
+          fpNewPassGroup.style.display = "block";
+          fpConfirmPassGroup.style.display = "block";
+          forgotSubmitBtn.textContent = "Set New Password";
+          forgotForm.reset();
+          currentFpStage = 2;
+
+        } else if (currentFpStage === 2) {
+          const newPassword = document.getElementById("forgot-new-password").value;
+          const confirmNewPassword = document.getElementById("forgot-confirm-password").value;
+
+          if (newPassword.length < 6) {
+            alert("Password must be at least 6 characters long.");
+            return;
+          }
+          if (newPassword !== confirmNewPassword) {
+            alert("Passwords do not match. Please check and try again.");
+            return;
+          }
+
+          const contactToUpdate = forgotForm.dataset.contact;
+          if (!contactToUpdate) {
+            alert("Something went wrong. Please start the process again.");
+            resetForgotPasswordForm();
+            return;
+          }
+
+          const users = loadUsers();
+          const userIndex = users.findIndex(u => u.contact.toLowerCase() === contactToUpdate.toLowerCase());
+          if (userIndex === -1) {
+            alert("User not found. Please sign up.");
+            resetForgotPasswordForm();
+            return;
+          }
+
+          users[userIndex].password = newPassword;
+          saveUsers(users);
+
+          alert("Your password has been reset successfully. You can now sign in with your new password.");
+
+          resetForgotPasswordForm();
+          showLogin();
+        }
+      });
+
+      /* Initialize visibility */
+      showLogin();
+    })();
+  </script>
+</body>
+
+</html>
